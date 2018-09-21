@@ -39,6 +39,9 @@ class AjaxResponse
         $this->res['payload'] = null;
         $this->res['$_POST'] = $_POST;
         $this->res['$_GET'] = $_GET;
+        if (TEST) {
+            $this->res['debug'] = '<div style="text-align:left;">' . ob_get_clean() . '</div>';
+        }
         echo json_encode($this->res, JSON_UNESCAPED_UNICODE);
         die();
     }
@@ -48,6 +51,9 @@ class AjaxResponse
         $this->res['status'] = true;
         $this->res['message'] = !is_null($message) ? $message : $this->res['message'];
         $this->res['payload'] = $payload;
+        if (TEST) {
+            $this->res['debug'] = '<div style="text-align:left;">' . ob_get_clean() . '</div>';
+        }
         echo json_encode($this->res, JSON_UNESCAPED_UNICODE);
         die();
     }

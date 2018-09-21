@@ -42,7 +42,7 @@ function pre()
  * @param string $prefix Префикс настроек из плагина CfgTv
  * @return array
  */
-function filterTvParams($config, $prefix = 'cfg_')
+function filterTvParams($config, $prefix)
 {
     $result = [];
     foreach ($config as $key => $value) {
@@ -77,7 +77,9 @@ function safetyData($array)
  * @param string $inputString Comma separated string
  * @return array
  */
-function commaSeparatedStringToArray($inputString)
+function emailsStringToArray($inputString)
 {
-    return array_map('trim', explode(',', $inputString));
+    return array_filter(array_map('trim', explode(CFG_EMAILS_DELIMITER, $inputString)), function($item){
+        return !!$item;
+    });
 }

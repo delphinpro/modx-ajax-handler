@@ -13,6 +13,9 @@ define('MODX_API_MODE', true);
 define('ACTIONS_DIR', __DIR__ . DIRECTORY_SEPARATOR . 'actions');
 define('TEST', isset($_GET['test']));
 
+define('CFG_PREFIX_PARAM', 'client_');
+define('CFG_EMAILS_DELIMITER', "\n");
+
 function exception_error_handler($severity, $message, $file, $line)
 {
     if (!(error_reporting() & $severity)) {
@@ -43,11 +46,13 @@ if (empty($modx->config)) $modx->getSettings();
 
 $modx->invokeEvent("OnWebPageInit");
 
+
 if (TEST) {
-    echo '<tt>' . 'Action: ' . $action . '</tt><br>';
+    ob_start();
+    echo '<code>' . 'Action: ' . $action . '</code><br>';
     pre('$_POST', $_POST);
     pre('$_FILES', $_FILES);
-    pre('Config', filterTvParams($modx->config));
+    pre('Config', filterTvParams($modx->config, CFG_PREFIX_PARAM));
 //    pre($modx->config);
 }
 
@@ -73,12 +78,14 @@ try {
         throw new Exception('Class not found ' . $actionClassName);
     }
 
-    $config = filterTvParams($modx->config);
+    $config = filterTvParams($modx->config, CFG_PREFIX_PARAM);
     AjaxAction::getInstance($actionClassName, $modx, $config)->exec();
 
 } catch (Exception $e) {
 
-    $message = $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine();
+    $base = str_replace('/', DIRECTORY_SEPARATOR, MODX_BASE_PATH);
+    $file = str_replace($base, '', $e->getFile());
+    $message =  $e->getMessage() . ' <br>in <code>\\' . $file . ':' . $e->getLine()  . '</code>';
     AjaxResponse::getInstance()->sendError($message);
 
 }

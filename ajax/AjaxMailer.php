@@ -62,7 +62,7 @@ class AjaxMailer
         /** @noinspection PhpUndefinedFieldInspection */
         $this->mail = $this->modx->mail;
 
-        $this->emailsTo = commaSeparatedStringToArray($this->config['EmailsTo']);
+        $this->emailsTo = emailsStringToArray($this->config['EmailsTo']);
         $this->emailFrom = $this->config['EmailFrom'];
 
         if (!array_key_exists($this->fMailTpl, $this->data)) {
@@ -240,11 +240,24 @@ class AjaxMailer
         $fields = array_merge($fields, $this->data);
 
         if (TEST) {
-            echo 'Ключ шаблона письма — <tt>' . $this->fMailTpl . '</tt>';
-            echo 'Шаблон письма — <tt>' . $this->data[$this->fMailTpl] . '</tt>';
+            echo 'Адреса отправки — <code>' . json_encode($this->emailsTo) . '</code><br>';
+            echo 'Ключ шаблона письма — <code>' . $this->fMailTpl . '</code><br>';
+            echo 'Шаблон письма — <code>' . $this->data[$this->fMailTpl] . '</code>';
+        }
+
+        if (empty($this->emailsTo)) {
+            throw new Exception('Не заданы адреса получателей. Проверьте параметр «' . 'EmailsTo' . '».');
+        }
+
+        if (empty($this->emailFrom)) {
+            throw new Exception('Не задан адрес отправителя. Проверьте параметр «' . 'EmailFrom' . '».');
         }
 
         $mailBody = $this->modx->parseChunk($this->data[$this->fMailTpl], $fields, '[+', '+]');
+
+        if (!$mailBody) {
+            throw new \Exception('Чанк шаблона письма не найден или пуст: <code>' . htmlspecialchars($this->data[$this->fMailTpl]) . '</code>');
+        }
 
         $this->addAddresses();
         $this->mail->From = $this->emailFrom;
