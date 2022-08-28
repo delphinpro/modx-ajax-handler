@@ -1,10 +1,8 @@
 <?php
-/**
- * ModX Ajax action example
- *
- * @author      delphinpro <delphinpro@gmail.com>
- * @copyright   copyright © 2018 delphinpro
- * @license     licensed under the MIT license
+/*
+ * Evolution CMS AJAX Handler
+ * Copyright (c) 2018-2022 delphinpro
+ * Licensed under the MIT license
  */
 
 /**

@@ -1,10 +1,8 @@
 <?php
-/**
- * ModX Ajax action example
- *
- * @author      delphinpro <delphinpro@gmail.com>
- * @copyright   copyright © 2018 delphinpro
- * @license     licensed under the MIT license
+/*
+ * Evolution CMS AJAX Handler
+ * Copyright (c) 2018-2022 delphinpro
+ * Licensed under the MIT license
  */
 
 
@@ -21,7 +19,7 @@ class NewsAjaxAction extends AjaxAction
         $sectionId = $this->getIntParam('sectionId', 0, 0);
 
         if (!$sectionId) {
-            throw new Exception('Неверный идентификатор контейнера — ' . $sectionId);
+            throw new Exception('Неверный идентификатор контейнера — '.$sectionId);
         }
 
         $res = $this->modx->runSnippet('DocLister', [
@@ -39,8 +37,21 @@ class NewsAjaxAction extends AjaxAction
         ]);
         $res = json_decode($res, true);
 
-        $months = ['','января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-            'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+        $months = [
+            '',
+            'января',
+            'февраля',
+            'марта',
+            'апреля',
+            'мая',
+            'июня',
+            'июля',
+            'августа',
+            'сентября',
+            'октября',
+            'ноября',
+            'декабря',
+        ];
 
         $items = [];
         foreach ($res['rows'] as $row) {
@@ -52,7 +63,7 @@ class NewsAjaxAction extends AjaxAction
                 'id'         => (int)$row['id'],
                 'title'      => $row['e_title'],
                 'date'       => date('Y-m-d', $row['pub_date']),
-                'dateFormat' => $day . ' ' . $month . ' ' . $year,
+                'dateFormat' => $day.' '.$month.' '.$year,
                 'cover'      => $row['tv_newsCover'] ? $this->modx->runSnippet('phpthumb', [
                     'input'   => $row['tv_newsCover'],
                     'options' => 'w_270,h_200,zc_C,bg_EEEEEE',

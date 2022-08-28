@@ -1,10 +1,8 @@
 <?php
-/**
- * ModX Ajax
- *
- * @author      delphinpro <delphinpro@gmail.com>
- * @copyright   copyright © 2018 delphinpro
- * @license     licensed under the MIT license
+/*
+ * Evolution CMS AJAX Handler
+ * Copyright (c) 2018-2022 delphinpro
+ * Licensed under the MIT license
  */
 
 /**
@@ -66,8 +64,74 @@ class AjaxMailer
         $this->emailFrom = $this->config['EmailFrom'];
 
         if (!array_key_exists($this->fMailTpl, $this->data)) {
-            throw new Exception('Не задан шаблон для письма. Добавьте в форму поле с именем «' . $this->fMailTpl . '» и названием чанка с шаблоном в качестве значения.');
+            throw new Exception('Не задан шаблон для письма. Добавьте в форму поле с именем «'.$this->fMailTpl.'» и названием чанка с шаблоном в качестве значения.');
         }
+    }
+
+    public function sendMail()
+    {
+        if (!$this->send()) {
+            throw new Exception('Сообщение не отправлено, повторите попытку.');
+        }
+    }
+
+    private function send($fields = [])
+    {
+        $fields = array_merge($fields, $this->data);
+
+        if (TEST) {
+            echo 'Адреса отправки — <code>'.json_encode($this->emailsTo).'</code><br>';
+            echo 'Ключ шаблона письма — <code>'.$this->fMailTpl.'</code><br>';
+            echo 'Шаблон письма — <code>'.$this->data[$this->fMailTpl].'</code>';
+        }
+
+        if (empty($this->emailsTo)) {
+            throw new Exception('Не заданы адреса получателей. Проверьте параметр «'.'EmailsTo'.'».');
+        }
+
+        if (empty($this->emailFrom)) {
+            throw new Exception('Не задан адрес отправителя. Проверьте параметр «'.'EmailFrom'.'».');
+        }
+
+        $mailBody = $this->modx->parseChunk($this->data[$this->fMailTpl], $fields, '[+', '+]');
+
+        if (!$mailBody) {
+            throw new Exception('Чанк шаблона письма не найден или пуст: <code>'.htmlspecialchars($this->data[$this->fMailTpl]).'</code>');
+        }
+
+        $this->addAddresses();
+        $this->mail->From = $this->emailFrom;
+        $this->mail->Subject = $this->getMailSubject();
+        $this->mail->IsHTML(true);
+        $this->mail->Body = $mailBody;
+        $this->mail->AltBody = $this->modx->stripTags($mailBody);
+
+        if (TEST) {
+            echo '<div style="border:1px solid;padding:1rem;background:#eee;">';
+            echo 'EMAIL'.'<br>';
+            echo 'Subject: '.$this->mail->Subject.'<br>';
+            echo 'To: '.join(', ', $this->emailsTo).'<br>';
+            echo 'From: '.$this->emailFrom.'<br>';
+            echo 'Body: '.'<br>';
+            ah_pre(htmlspecialchars($mailBody));
+            echo '</div>';
+        }
+
+        return $this->mail->send();
+    }
+
+    protected function addAddresses()
+    {
+        foreach ($this->emailsTo as $mail) {
+            $this->mail->addAddress($mail);
+        }
+    }
+
+    public function getMailSubject()
+    {
+        return (array_key_exists($this->fSubject, $this->data))
+            ? $this->data[$this->fSubject]
+            : 'Письмо с сайта '.$this->modx->config['site_name'];
     }
 
     public function sendMailWithAttach()
@@ -77,6 +141,7 @@ class AjaxMailer
         $attach = $this->prepareAttachedFiles($fileTypes, $fileSize);
 
         $fields = [];
+        $fields['attach'] = [];
 
         if (!empty($attach)) {
             foreach ($attach as $file) {
@@ -89,66 +154,12 @@ class AjaxMailer
         $this->send($fields);
     }
 
-    public function getMailSubject()
-    {
-        return (array_key_exists($this->fSubject, $this->data))
-            ? $this->data[$this->fSubject]
-            : 'Письмо с сайта ' . $this->modx->config['site_name'];
-    }
-
-    public function sendMail()
-    {
-        if (!$this->send()) {
-            throw new Exception('Сообщение не отправлено, повторите попытку.');
-        }
-    }
-
-    public function sendUserMail()
-    {
-        if (!$this->isRequiredSendToUser()) return false;
-
-        if (TEST) {
-            echo 'Ключ шаблона письма юзеру — <tt>' . $this->fUserMailTpl . '</tt>';
-            echo 'Шаблон письма юзеру — <tt>' . $this->data[$this->fUserMailTpl] . '</tt>';
-        }
-
-        $this->mail->clearAddresses();
-        $this->mail->clearAttachments();
-
-        $userMailTpl = $this->data[$this->fUserMailTpl];
-        $mailBody = $this->modx->parseChunk($userMailTpl, $this->data, '[+', '+]');
-
-        if (empty($mailBody)) {
-            return false;
-        }
-
-        $this->mail->addAddress($this->data[$this->fMail]);
-        $this->mail->From = $this->emailFrom;
-        $this->mail->Subject = $this->getMailSubject();
-        $this->mail->Body = $mailBody;
-        $this->mail->IsHTML(true);
-        $this->mail->AltBody = $this->modx->stripTags($mailBody);
-
-        if (TEST) {
-            echo '<div style="border:1px solid;padding:1rem;background:#eee;">';
-            echo 'USER EMAIL' . '<br>';
-            echo 'Subject: ' . $this->mail->Subject . '<br>';
-            echo 'To: ' . join(', ', $this->emailsTo) . '<br>';
-            echo 'From: ' . $this->emailFrom . '<br>';
-            echo 'Body: ' . '<br>';
-            pre(htmlspecialchars($mailBody));
-            echo '</div>';
-        }
-
-        return $this->mail->send();
-    }
-
     /**
      * @return array
      */
     protected function getAllowedFileTypes()
     {
-        $fileTypes = array(
+        $fileTypes = [
             'image/png',
             'image/jpeg',
             'image/jpg',
@@ -156,8 +167,8 @@ class AjaxMailer
             'application/pdf',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'text/plain',
-            'application/msword'
-        );
+            'application/msword',
+        ];
         return $fileTypes;
     }
 
@@ -200,7 +211,7 @@ class AjaxMailer
         }
 
         //подготовим файлы для отправки
-        $attach = array();
+        $attach = [];
         foreach ($files as $file) {
             //Здесь можем проверить расширения файлов, их длину и т.п.
             if (!$file['error']
@@ -215,11 +226,44 @@ class AjaxMailer
         return $attach;
     }
 
-    protected function addAddresses()
+    public function sendUserMail()
     {
-        foreach ($this->emailsTo as $mail) {
-            $this->mail->addAddress($mail);
+        if (!$this->isRequiredSendToUser()) return false;
+
+        if (TEST) {
+            echo 'Ключ шаблона письма юзеру — <tt>'.$this->fUserMailTpl.'</tt>';
+            echo 'Шаблон письма юзеру — <tt>'.$this->data[$this->fUserMailTpl].'</tt>';
         }
+
+        $this->mail->clearAddresses();
+        $this->mail->clearAttachments();
+
+        $userMailTpl = $this->data[$this->fUserMailTpl];
+        $mailBody = $this->modx->parseChunk($userMailTpl, $this->data, '[+', '+]');
+
+        if (empty($mailBody)) {
+            return false;
+        }
+
+        $this->mail->addAddress($this->data[$this->fMail]);
+        $this->mail->From = $this->emailFrom;
+        $this->mail->Subject = $this->getMailSubject();
+        $this->mail->Body = $mailBody;
+        $this->mail->IsHTML(true);
+        $this->mail->AltBody = $this->modx->stripTags($mailBody);
+
+        if (TEST) {
+            echo '<div style="border:1px solid;padding:1rem;background:#eee;">';
+            echo 'USER EMAIL'.'<br>';
+            echo 'Subject: '.$this->mail->Subject.'<br>';
+            echo 'To: '.join(', ', $this->emailsTo).'<br>';
+            echo 'From: '.$this->emailFrom.'<br>';
+            echo 'Body: '.'<br>';
+            ah_pre(htmlspecialchars($mailBody));
+            echo '</div>';
+        }
+
+        return $this->mail->send();
     }
 
     /**
@@ -233,50 +277,5 @@ class AjaxMailer
         return array_key_exists($this->fUserMailTpl, $this->data)
             && !empty($this->data[$this->fMail])
             && filter_var($this->data[$this->fMail], FILTER_VALIDATE_EMAIL);
-    }
-
-    private function send($fields = [])
-    {
-        $fields = array_merge($fields, $this->data);
-
-        if (TEST) {
-            echo 'Адреса отправки — <code>' . json_encode($this->emailsTo) . '</code><br>';
-            echo 'Ключ шаблона письма — <code>' . $this->fMailTpl . '</code><br>';
-            echo 'Шаблон письма — <code>' . $this->data[$this->fMailTpl] . '</code>';
-        }
-
-        if (empty($this->emailsTo)) {
-            throw new Exception('Не заданы адреса получателей. Проверьте параметр «' . 'EmailsTo' . '».');
-        }
-
-        if (empty($this->emailFrom)) {
-            throw new Exception('Не задан адрес отправителя. Проверьте параметр «' . 'EmailFrom' . '».');
-        }
-
-        $mailBody = $this->modx->parseChunk($this->data[$this->fMailTpl], $fields, '[+', '+]');
-
-        if (!$mailBody) {
-            throw new \Exception('Чанк шаблона письма не найден или пуст: <code>' . htmlspecialchars($this->data[$this->fMailTpl]) . '</code>');
-        }
-
-        $this->addAddresses();
-        $this->mail->From = $this->emailFrom;
-        $this->mail->Subject = $this->getMailSubject();
-        $this->mail->IsHTML(true);
-        $this->mail->Body = $mailBody;
-        $this->mail->AltBody = $this->modx->stripTags($mailBody);
-
-        if (TEST) {
-            echo '<div style="border:1px solid;padding:1rem;background:#eee;">';
-            echo 'EMAIL' . '<br>';
-            echo 'Subject: ' . $this->mail->Subject . '<br>';
-            echo 'To: ' . join(', ', $this->emailsTo) . '<br>';
-            echo 'From: ' . $this->emailFrom . '<br>';
-            echo 'Body: ' . '<br>';
-            pre(htmlspecialchars($mailBody));
-            echo '</div>';
-        }
-
-        return $this->mail->send();
     }
 }

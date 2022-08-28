@@ -1,21 +1,24 @@
 <?php
-/**
- * ModX Ajax
- *
- * @author      delphinpro <delphinpro@gmail.com>
- * @copyright   copyright © 2018 delphinpro
- * @license     licensed under the MIT license
- *
- * @var DocumentParser $modx
+/*
+ * Evolution CMS AJAX Handler
+ * Copyright (c) 2018-2022 delphinpro
+ * Licensed under the MIT license
  */
 
-define('MODX_API_MODE', true);
-define('ACTIONS_DIR', __DIR__ . DIRECTORY_SEPARATOR . 'actions');
+/**
+ * @var \DocumentParser $modx
+ */
+
+const MODX_API_MODE = true;
+const ACTIONS_DIR = __DIR__.DIRECTORY_SEPARATOR.'actions';
 define('TEST', isset($_GET['test']));
 
-define('CFG_PREFIX_PARAM', 'client_');
-define('CFG_EMAILS_DELIMITER', "\n");
+const CFG_PREFIX_PARAM = 'client_';
+const CFG_EMAILS_DELIMITER = "\n";
 
+/**
+ * @throws \ErrorException
+ */
 function exception_error_handler($severity, $message, $file, $line)
 {
     if (!(error_reporting() & $severity)) {
@@ -34,11 +37,11 @@ $action = isset($_GET['action'])
     ? ucfirst(preg_replace('/[^a-zA-Z]/', '', $_GET['action']))
     : null;
 
-include __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'index.php';
-require_once __DIR__ . DIRECTORY_SEPARATOR . 'functions.php';
-require_once __DIR__ . DIRECTORY_SEPARATOR . 'AjaxResponse.php';
-require_once __DIR__ . DIRECTORY_SEPARATOR . 'AjaxMailer.php';
-require_once __DIR__ . DIRECTORY_SEPARATOR . 'AjaxAction.php';
+include __DIR__.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'index.php';
+require_once __DIR__.DIRECTORY_SEPARATOR.'functions.php';
+require_once __DIR__.DIRECTORY_SEPARATOR.'AjaxResponse.php';
+require_once __DIR__.DIRECTORY_SEPARATOR.'AjaxMailer.php';
+require_once __DIR__.DIRECTORY_SEPARATOR.'AjaxAction.php';
 
 $modx->db->connect();
 
@@ -49,10 +52,10 @@ $modx->invokeEvent("OnWebPageInit");
 
 if (TEST) {
     ob_start();
-    echo '<code>' . 'Action: ' . $action . '</code><br>';
-    pre('$_POST', $_POST);
-    pre('$_FILES', $_FILES);
-    pre('Config', filterTvParams($modx->config, CFG_PREFIX_PARAM));
+    echo '<code>'.'Action: '.$action.'</code><br>';
+    ah_pre('$_POST', $_POST);
+    ah_pre('$_FILES', $_FILES);
+    ah_pre('Config', filterTvParams($modx->config, CFG_PREFIX_PARAM));
 //    pre($modx->config);
 }
 
@@ -66,16 +69,15 @@ try {
         throw new Exception('Invalid ajax action');
     }
 
-    $actionFileName = ACTIONS_DIR . DIRECTORY_SEPARATOR . $action . '.php';
-    if (TEST) echo '<tt>' . 'File:   ' . $actionFileName . '</tt><br>';
+    $actionFileName = ACTIONS_DIR.DIRECTORY_SEPARATOR.$action.'.php';
+    if (TEST) echo '<tt>'.'File:   '.$actionFileName.'</tt><br>';
     if (!file_exists($actionFileName)) {
-        throw new Exception('Invalid ajax action: ' . $action);
+        throw new Exception('Invalid ajax action: '.$action);
     }
 
-    /** @noinspection PhpIncludeInspection */
     require_once $actionFileName;
-    if (!class_exists($actionClassName = $action . 'AjaxAction')) {
-        throw new Exception('Class not found ' . $actionClassName);
+    if (!class_exists($actionClassName = $action.'AjaxAction')) {
+        throw new Exception('Class not found '.$actionClassName);
     }
 
     $config = filterTvParams($modx->config, CFG_PREFIX_PARAM);
@@ -85,7 +87,7 @@ try {
 
     $base = str_replace('/', DIRECTORY_SEPARATOR, MODX_BASE_PATH);
     $file = str_replace($base, '', $e->getFile());
-    $message =  $e->getMessage() . ' <br>in <code>\\' . $file . ':' . $e->getLine()  . '</code>';
+    $message = $e->getMessage().' <br>in <code>\\'.$file.':'.$e->getLine().'</code>';
     AjaxResponse::getInstance()->sendError($message);
 
 }

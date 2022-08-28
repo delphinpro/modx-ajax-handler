@@ -1,10 +1,8 @@
 <?php
-/**
- * ModX Ajax
- *
- * @author      delphinpro <delphinpro@gmail.com>
- * @copyright   copyright © 2018 delphinpro
- * @license     licensed under the MIT license
+/*
+ * Evolution CMS AJAX Handler
+ * Copyright (c) 2018-2022 delphinpro
+ * Licensed under the MIT license
  */
 
 /**
@@ -29,6 +27,17 @@ abstract class AjaxAction
     }
 
     /**
+     * @param array $cfg
+     * @return AjaxAction
+     */
+    public function configure(array $cfg)
+    {
+        return $this;
+    }
+
+    abstract public function exec();
+
+    /**
      * @param $classname
      * @param DocumentParser $modx
      * @param array $config
@@ -47,17 +56,6 @@ abstract class AjaxAction
     {
         $postData['site_name'] = $this->modx->config['site_name'];
         return new AjaxMailer($this->modx, $this->config, $postData);
-    }
-
-    abstract public function exec();
-
-    /**
-     * @param array $cfg
-     * @return AjaxAction
-     */
-    public function configure(array $cfg)
-    {
-        return $this;
     }
 
     /**
